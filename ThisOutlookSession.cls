@@ -86,12 +86,33 @@ End Sub
 
 ' Edit this list to skip noisy folders (add folder names as needed).
 Private Function IsExcludedFolder(ByVal SourceFolder As Outlook.folder) As Boolean
+    On Error GoTo ErrorHandler
+
+    Dim objNamespace As Outlook.NameSpace
+    Set objNamespace = session
+
     Select Case SourceFolder.name
         Case "Conversation History", "Sync Issues", "RSS Feeds"
+            IsExcludedFolder = True
+            GoTo ExitHere
+    End Select
+
+    Select Case SourceFolder.entryID
+        Case objNamespace.GetDefaultFolder(olFolderOutbox).entryID, _
+             objNamespace.GetDefaultFolder(olFolderDrafts).entryID, _
+             objNamespace.GetDefaultFolder(olFolderDeletedItems).entryID, _
+             objNamespace.GetDefaultFolder(olFolderJunk).entryID
             IsExcludedFolder = True
         Case Else
             IsExcludedFolder = False
     End Select
+
+ExitHere:
+    Exit Function
+
+ErrorHandler:
+    IsExcludedFolder = False
+    Resume ExitHere
 End Function
 
 
