@@ -157,7 +157,6 @@ Public Sub TimerProc(ByVal lngHwnd As LongPtr, _
                      ByVal lngIdEvent As LongPtr, _
                      ByVal lngSysTime As Long)
     On Error GoTo ErrorHandler
-    Exit Sub
 
     KillTimer 0, lngIdEvent
     mlngTimerId = 0
@@ -175,7 +174,6 @@ Public Sub TimerProc(ByVal lngHwnd As Long, _
                      ByVal lngIdEvent As Long, _
                      ByVal lngSysTime As Long)
     On Error GoTo ErrorHandler
-    Exit Sub
     
     KillTimer 0, lngIdEvent
     mlngTimerId = 0
@@ -195,7 +193,8 @@ Private Sub ProcessPendingQueue()
     Dim objLogger As cEventLogger
     Dim bolHasWork As Boolean
 
-    bolHasWork = (Not mdicPendingRoutes Is Nothing) Or (Not mcolPendingActivities Is Nothing) Or GetTracker().HasPendingRemovals()
+    'bolHasWork = (Not mdicPendingRoutes Is Nothing) Or (Not mcolPendingActivities Is Nothing) Or GetTracker().HasPendingRemovals()
+    bolHasWork = (Not mdicPendingRoutes Is Nothing) Or (Not mcolPendingActivities Is Nothing) Or GetTracker().HasPendingVerdicts()
     If Not bolHasWork Then GoTo ExitHere
 
     Set objLogger = GetLogger()
