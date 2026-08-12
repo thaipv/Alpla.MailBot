@@ -1,12 +1,3 @@
-VERSION 1.0 CLASS
-BEGIN
-  MultiUse = -1  'True
-END
-Attribute VB_Name = "cThreadRouter"
-Attribute VB_GlobalNameSpace = False
-Attribute VB_Creatable = False
-Attribute VB_PredeclaredId = False
-Attribute VB_Exposed = False
 Option Explicit
 
 ' Finds the business folder a mail item's conversation already lives in
@@ -23,10 +14,57 @@ Private Const MAX_CONVERSATION_DEPTH As Long = 200
 ' Moves Item to its conversation's home folder if one is found and is
 ' different from its current folder. Returns True if a move happened.
 ' -------------------------------------------------------------------
+'Public Function RouteItem(ByVal Item As Outlook.mailItem, _
+'                          ByVal EventSource As String, _
+'                          ByVal Logger As cEventLogger, _
+'                          ByVal Tracker As cActivityTracker) As Boolean
+'    On Error GoTo ErrorHandler
+'
+'    Dim fldHome As Outlook.folder
+'    Dim fldOld As Outlook.folder
+'    Dim dicFields As Object
+'
+'    RouteItem = False
+'    Set fldHome = FindHomeFolder(Item)
+'
+'    If Not fldHome Is Nothing Then
+'        Set fldOld = Item.Parent
+'
+'        If fldHome.entryID <> fldOld.entryID Then
+'            ' Capture loggable fields before Move - EntryID and some
+'            ' properties are not safe to re-read off Item afterwards.
+'            If Not Logger Is Nothing Then Set dicFields = Logger.CaptureMailFields(Item)
+'
+'            ' Let the activity tracker know this move is already being
+'            ' logged, so its own ItemAdd handling does not log it again.
+'            If Not Tracker Is Nothing Then Tracker.SuppressNextArrival Item
+'
+'            Item.Move fldHome
+'            RouteItem = True
+'
+'            If Not Logger Is Nothing Then
+'                dicFields("FolderFrom") = fldOld.FolderPath
+'                dicFields("FolderTo") = fldHome.FolderPath
+'                Logger.LogEvent EventSource, "Moved to conversation's existing folder", dicFields
+'            End If
+'        End If
+'    End If
+'
+'ExitHere:
+'    Set fldHome = Nothing
+'    Set fldOld = Nothing
+'    Exit Function
+'
+'ErrorHandler:
+'    RouteItem = False
+'    Resume ExitHere
+'End Function
+
 Public Function RouteItem(ByVal Item As Outlook.mailItem, _
                           ByVal EventSource As String, _
                           ByVal Logger As cEventLogger, _
-                          ByVal Tracker As cActivityTracker) As Boolean
+                          ByVal Tracker As cActivityTracker, _
+                          Optional ByRef DestinationFolder As Outlook.folder) As Boolean
     On Error GoTo ErrorHandler
 
     Dim fldHome As Outlook.folder
@@ -50,6 +88,11 @@ Public Function RouteItem(ByVal Item As Outlook.mailItem, _
 
             Item.Move fldHome
             RouteItem = True
+
+            ' fldHome is the destination folder object itself, captured
+            ' before Move - safe to hand back even though Item is now
+            ' stale and can no longer be trusted for its own Parent.
+            Set DestinationFolder = fldHome
 
             If Not Logger Is Nothing Then
                 dicFields("FolderFrom") = fldOld.FolderPath
@@ -221,5 +264,3 @@ ErrorHandler:
     IsSystemFolder = False
     Resume ExitHere
 End Function
-
-
