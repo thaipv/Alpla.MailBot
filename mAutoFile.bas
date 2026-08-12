@@ -1,4 +1,3 @@
-Attribute VB_Name = "mAutoFile"
 Option Explicit
 
 ' Entry point macros (ScanAndRefileExisting) and the deferred processing
@@ -219,6 +218,47 @@ ErrorHandler:
     Resume ExitHere
 End Sub
 
+'Private Sub ProcessPendingRoutes(ByVal Logger As cEventLogger)
+'    On Error GoTo ErrorHandler
+'
+'    Dim objNamespace As Outlook.NameSpace
+'    Dim objRouter As cThreadRouter
+'    Dim varKey As Variant
+'    Dim objItem As Object
+'
+'    If mdicPendingRoutes Is Nothing Then GoTo ExitHere
+'
+'    Set objNamespace = Application.session
+'    Set objRouter = New cThreadRouter
+'
+'    For Each varKey In mdicPendingRoutes.Keys
+'        Set objItem = Nothing
+'
+'        ' A queued item can have been deleted or moved again by the time
+'        ' the timer fires - skip it and keep processing the rest.
+'        On Error Resume Next
+'        Set objItem = objNamespace.GetItemFromID(CStr(varKey), CStr(mdicPendingRoutes(varKey)))
+'        On Error GoTo ErrorHandler
+'
+'        If Not objItem Is Nothing Then
+'            If "MailItem" = TypeName(objItem) Then
+'                If objRouter.RouteItem(objItem, "AutoFile", Logger, GetTracker()) Then
+'                    ShowAutoFileNotification objItem
+'                End If
+'            End If
+'        End If
+'    Next varKey
+'
+'ExitHere:
+'    Set mdicPendingRoutes = Nothing
+'    Set objRouter = Nothing
+'    Set objNamespace = Nothing
+'    Exit Sub
+'
+'ErrorHandler:
+'    Resume ExitHere
+'End Sub
+
 Private Sub ProcessPendingRoutes(ByVal Logger As cEventLogger)
     On Error GoTo ErrorHandler
 
@@ -226,6 +266,8 @@ Private Sub ProcessPendingRoutes(ByVal Logger As cEventLogger)
     Dim objRouter As cThreadRouter
     Dim varKey As Variant
     Dim objItem As Object
+    Dim fldDestination As Outlook.folder
+    Dim strSubject As String
 
     If mdicPendingRoutes Is Nothing Then GoTo ExitHere
 
@@ -243,8 +285,14 @@ Private Sub ProcessPendingRoutes(ByVal Logger As cEventLogger)
 
         If Not objItem Is Nothing Then
             If "MailItem" = TypeName(objItem) Then
-                If objRouter.RouteItem(objItem, "AutoFile", Logger, GetTracker()) Then
-                    ShowAutoFileNotification objItem
+                ' Read Subject before RouteItem may Move the item - once
+                ' moved, the original Item reference is stale and can
+                ' silently report pre-move values instead of erroring.
+                strSubject = objItem.Subject
+                Set fldDestination = Nothing
+
+                If objRouter.RouteItem(objItem, "AutoFile", Logger, GetTracker(), fldDestination) Then
+                    ShowAutoFileNotification strSubject, fldDestination.name
                 End If
             End If
         End If
@@ -252,6 +300,7 @@ Private Sub ProcessPendingRoutes(ByVal Logger As cEventLogger)
 
 ExitHere:
     Set mdicPendingRoutes = Nothing
+    Set fldDestination = Nothing
     Set objRouter = Nothing
     Set objNamespace = Nothing
     Exit Sub
@@ -259,6 +308,8 @@ ExitHere:
 ErrorHandler:
     Resume ExitHere
 End Sub
+
+
 
 Private Sub ProcessPendingActivities(ByVal Logger As cEventLogger)
     On Error GoTo ErrorHandler
@@ -282,10 +333,22 @@ End Sub
 ' Simple heads-up popup for the live auto-file path only. Bulk refiling
 ' (ScanAndRefileExisting) already shows one summary MsgBox at the end,
 ' so it is not repeated here to avoid one dialog per item.
-Private Sub ShowAutoFileNotification(ByVal Item As Outlook.mailItem)
+'Private Sub ShowAutoFileNotification(ByVal Item As Outlook.mailItem)
+'    On Error GoTo ErrorHandler
+'
+'    MsgBox Item.Subject & vbCrLf & "-> " & Item.Parent.name, vbInformation, "Email auto-filed"
+'
+'ExitHere:
+'    Exit Sub
+'
+'ErrorHandler:
+'    Resume ExitHere
+'End Sub
+
+Private Sub ShowAutoFileNotification(ByVal Subject As String, ByVal FolderName As String)
     On Error GoTo ErrorHandler
 
-    MsgBox Item.Subject & vbCrLf & "-> " & Item.Parent.name, vbInformation, "Email auto-filed"
+    MsgBox Subject & vbCrLf & "-> " & FolderName, vbInformation, "Email auto-filed"
 
 ExitHere:
     Exit Sub
@@ -385,6 +448,3 @@ ExitHere:
 ErrorHandler:
     Resume ExitHere
 End Sub
-
-
-
