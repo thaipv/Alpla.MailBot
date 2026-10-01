@@ -17,7 +17,6 @@ Option Explicit
 ' every folder still reports to cActivityTracker for activity logging.
 
 Private WithEvents mItems As Outlook.items
-Attribute mItems.VB_VarHelpID = -1
 Private mbolEnableRouting As Boolean
 Private mobjTracker As cActivityTracker
 
